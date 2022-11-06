@@ -7,7 +7,8 @@
 
 
 //选出合适的山脊，避免前排沟 作n 个选择集  输出acgepoint2dary
-//参数：A点 （横洞PL 斜井PL）输出所有可能山脊位置，考虑角度，隧道点列，考虑隧道上方岩层厚度 
+//参数：A点 （横洞PL 斜井PL）输出所有可能山脊位置，考虑角度，
+//隧道点列，考虑隧道上方岩层厚度 
 
 
 bool OptmizeFunc::Vallay()
@@ -21,7 +22,8 @@ bool OptmizeFunc::Vallay()
 	return false;
 }
 
-bool OptmizeFunc::Ridge(AcGePoint2dArray& RidgePtAry, AcGePoint2d& TunAPt, AcDbObjectIdArray HD, AcDbObjectIdArray XJ)
+bool OptmizeFunc::Ridge(AcGePoint2dArray& RidgePtAry, AcGePoint2d& TunAPt, 
+	AcDbObjectIdArray HD, AcDbObjectIdArray XJ)
 {
 	return false;
 }

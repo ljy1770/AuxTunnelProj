@@ -14,7 +14,7 @@ AcDbObjectId CreateEnt::PostToModelSpace(AcDbEntity* pEnt)
 {
 	AcDbBlockTable* pBlockTable;
 	acdbHostApplicationServices()->workingDatabase()
-		->getBlockTable(pBlockTable, AcDb::kForRead);
+		->getSymbolTable(pBlockTable, AcDb::kForRead);
 	AcDbBlockTableRecord* pBlockTableRecord;
 	pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord,
 		AcDb::kForWrite);
