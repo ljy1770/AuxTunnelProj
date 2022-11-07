@@ -119,9 +119,6 @@ public:
 	virtual void RegisterServerComponents() {}
 
 
-
-
-
 	static void LJYMyGroupATnl() {
 		int i, k;
 		//当前数据库
@@ -138,12 +135,10 @@ public:
 		// 计算A点标高
 		int A_z = 700;
 		AcGePoint2dArray TunAPtAry;
-		AcGeDoubleArray ParamAry;
 		AcDbObjectIdArray HDPLIdAry, XJPLIdAry, RdObjIdAry;
 		acutPrintf(_T("\n new acdbobjectidary length:%d"), HDPLIdAry.length());
 		TunSamplePtTemp(TunAPtAry);
 		//GetTunAPt(TunAPtAry);
-
 		acutPrintf(_T("\n 选取的A点个数：%d"), TunAPtAry.length());
 		AcGePoint3d APoint;
 		double minD = 0; int minN = 0;
@@ -170,7 +165,7 @@ public:
 			{
 				//在多个多段线中选择最优点出横洞
 				AcGeDoubleArray minDAry;
-				Int32* minNAry = new Int32[HDPLIdAry.length() + 1];
+				int* minNAry = new int[HDPLIdAry.length() + 1];
 				AcGePoint2dArray BpointAry;
 
 				for (k = 0; k < HDPLIdAry.length(); k++)
@@ -209,7 +204,7 @@ public:
 	static void LJYMyGroupTestAPt()
 	{
 		ads_name SSN; Acad::ErrorStatus es;
-		AcDbEntity* pEnt;
+		AcDbEntity* pEPlLen;
 		acedSSGet(NULL, NULL, NULL, NULL, SSN);
 		Adesk::Int32 length;
 		acedSSLength(SSN, &length);
@@ -221,17 +216,17 @@ public:
 			acedSSName(SSN, i, ent);
 			AcDbObjectId objId;
 			acdbGetObjectId(objId, ent);
-			es = acdbOpenAcDbEntity(pEnt, objId,
+			es = acdbOpenAcDbEntity(pEPlLen, objId,
 				AcDb::kForRead);
 			if (es == Acad::eWasOpenForWrite) { continue; }
-			if (pEnt->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue) {
-				AcDbPolyline* pPoly = AcDbPolyline::cast(pEnt);
+			if (pEPlLen->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue) {
+				AcDbPolyline* pPoly = AcDbPolyline::cast(pEPlLen);
 				double L;
 				OptmizeFunc::PLLength(pPoly, L);
 				acutPrintf(_T("\nPolyline %d, length:%f"), i, L);
 			}
 		}
-		pEnt->close();
+		pEPlLen->close();
 		acedSSFree(SSN);
 
 	}
@@ -377,25 +372,22 @@ bool TunSamplePtTemp(AcGePoint2dArray& APtAry)
 		pMainTunnelLay->close();
 		return false;
 	}
-
 	pMainTunnelLay->getAt(_T("隧道-斜井"), MTId);
 	pMainTunnelLay->getAt(_T("4330"), RdId);
 	pMainTunnelLay->close();
-
 	AcDbBlockTable* pBlk;
 	acdbHostApplicationServices()->workingDatabase()->
 		getSymbolTable(pBlk, AcDb::kForRead);
 	AcDbBlockTableRecord* pBlkRcd;
 	pBlk->getAt(ACDB_MODEL_SPACE, pBlkRcd, AcDb::kForRead);
 	pBlk->close();
-
 	AcDbBlockTableRecordIterator* pIter;
 	pBlkRcd->newIterator(pIter);
 	double TnlLen = 0;
 	int count, descount, Num, WorkLen, Numb, VtxNum, i = 1, j = 1;
 	count = 0;
 	//AcGePoint2dArray SamplePtArray;
-	//unsigned int index = 1; functoin getpointat() obsolet 
+	//unsigned int index = 1; functoin getpointat() obsolete 
 	//struct resbuf* pRb;
 	for (pIter->start(); !pIter->done(); pIter->step())
 	{
@@ -423,30 +415,28 @@ bool TunSamplePtTemp(AcGePoint2dArray& APtAry)
 			//&& pRb != NULL){
 			AcDbPolyline* pPL = AcDbPolyline::cast(pEnt);
 			OptmizeFunc::PLLength(pPL, TnlLen);
-			if (TnlLen > 1000000 || TnlLen < TnlWorkingLen) { break; }
-			VtxNum = (int)TnlLen + 1;
-			Num = (int)(TnlLen / TnlWorkingLen);
-			Numb = Num + 1;
-			WorkLen = (int)(TnlLen / Numb);
-			AcGePoint2dArray TunPtAry;
-			//if (pRb != NULL){
-			AcGeCurve2d* pMainTunCur;
-			OptmizeFunc::PolyToGeCurve((const AcDbPolyline*&)pPL, pMainTunCur);
-			Adesk::Boolean rbl;
-			AcGePoint2d PtStart, PtEnd;
-			acutPrintf(_T("\n 断点11"));
-			rbl = pMainTunCur->hasStartPoint(PtStart);
-			rbl = pMainTunCur->hasEndPoint(PtEnd);
-			pMainTunCur->getSamplePoints(VtxNum, TunPtAry);
-			acutPrintf(_T("\n 断点12"));
-			acutPrintf(_T("\nTnlLen = %d,Num = %d Numb = %d,workLen = %d")
-				, VtxNum, Num, Numb, WorkLen);
-			for (j = 1; j < Numb; j++)
-			{
-				acutPrintf(_T("\n 断点%f"), j);
-				APtAry.append(TunPtAry[WorkLen * j - 1]);
+			if (TnlLen < 1000000 && TnlLen > TnlWorkingLen) {
+				VtxNum = (int)TnlLen + 1;
+				Num = (int)(TnlLen / TnlWorkingLen);
+				Numb = Num + 1;
+				WorkLen = (int)(TnlLen / Numb);
+				AcGePoint2dArray TunPtAry;
+				//if (pRb != NULL){
+				AcGeCurve2d* pMainTunCur;
+				OptmizeFunc::PolyToGeCurve((const AcDbPolyline*&)pPL, pMainTunCur);
+				Adesk::Boolean rbl;
+				AcGePoint2d PtStart, PtEnd;
+				//acutPrintf(_T("\n 断点11"));
+				rbl = pMainTunCur->hasStartPoint(PtStart);
+				rbl = pMainTunCur->hasEndPoint(PtEnd);
+				pMainTunCur->getSamplePoints(VtxNum, TunPtAry);
+				//acutPrintf(_T("\n 断点12"));
+				acutPrintf(_T("\nTnlLen = %d,Num = %d Numb = %d,workLen = %d")
+					, VtxNum, Num, Numb, WorkLen);
+				for (j = 1; j < Numb; j++) {
+					APtAry.append(TunPtAry[WorkLen * j - 1]);
+				}
 			}
-
 			//free(pRb);
 			//在n等分点选组A点acgepoint3d;
 			//加入外部数据库或者直接画polyline3d
@@ -511,8 +501,9 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 	// 	//实体类型包括轻量多段线和text，图层包括pmxx-h.. 和隧道-斜井
 	//两个选择集，一个选择隧道多段线，一个选择里程文字用于定位
 	RbTunPl = acutBuildList(-4, _T("<AND"), RTDXF0, _T("PLINE"),
-		8, _T("PMXX-hngtx,隧道-斜井"), -4, _T("AND>"), RTNONE);
-	RbTxt = acutBuildList(RTDXF0, _T("TEXT"), 8, _T("PMXX-hngtx,隧道-斜井"), 1, _T("DK*"), RTNONE);
+		8, _T("隧道-斜井"), -4, _T("AND>"), RTNONE);
+	RbTxt = acutBuildList(RTDXF0, _T("TEXT"),
+		8, _T("PMXX-hngtx,隧道-斜井"), 1, _T("DK*"), RTNONE);
 
 	if (acedSSGet(_T("X"), NULL, NULL, RbTunPl, ssTunPl) != RTNORM)
 		//|| acedSSGet(_T("X"), NULL, NULL, RbTxt, ssText) != RTNORM)
@@ -522,7 +513,7 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 	}
 
 	Acad::ErrorStatus es;
-	int i; AcDbEntity* pEnt;
+	int i; AcDbEntity* pEMTun;
 	Adesk::Int32 length, txtLen;
 	acedSSLength(ssTunPl, &length);
 	acedSSLength(ssText, &txtLen);
@@ -535,13 +526,13 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 		acedSSName(ssTunPl, i, ent);
 		AcDbObjectId objId;
 		acdbGetObjectId(objId, ent);
-		es = acdbOpenAcDbEntity(pEnt, objId,
+		es = acdbOpenAcDbEntity(pEMTun, objId,
 			AcDb::kForRead);
 		if (es == Acad::eWasOpenForWrite) { continue; }
 		//acutPrintf(_T("\n实体类型%s,所在图层%s"), pEnt->isA()->name(), pEnt->layer());
-		if (pEnt->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue)
+		if (pEMTun->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue)
 		{
-			AcDbPolyline* pPLine = AcDbPolyline::cast(pEnt);
+			AcDbPolyline* pPLine = AcDbPolyline::cast(pEMTun);
 			OptmizeFunc::PLLength(pPLine, TnlLen);
 			if (TnlLen > 1000000 || TnlLen < TnlWorkingLen) { break; }
 			VtxNum = (int)TnlLen + 1;
@@ -570,12 +561,12 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 		acedSSName(ssText, i, TxtEnt);
 		AcDbObjectId TobjId;
 		acdbGetObjectId(TobjId, TxtEnt);
-		es = acdbOpenAcDbEntity(pEnt, TobjId,
+		es = acdbOpenAcDbEntity(pEMTun, TobjId,
 			AcDb::kForRead);
 		if (es == Acad::eWasOpenForWrite) { continue; }
-		if (pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue)
+		if (pEMTun->isKindOf(AcDbText::desc()) == Adesk::kTrue)
 		{
-			AcDbText* pTxt = AcDbText::cast(pEnt);
+			AcDbText* pTxt = AcDbText::cast(pEMTun);
 			acutPrintf(_T("text%d = %s"), i, pTxt->textString());
 		}
 	}
@@ -583,7 +574,7 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 	acutPrintf(_T("\n APtAry.Length() = ：%d"), APtAry.length());
 
 
-	pEnt->close();
+	pEMTun->close();
 	acutRelRb(RbTunPl);
 	acutRelRb(RbTxt);
 	acedSSFree(ssText);
@@ -594,54 +585,72 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 
 //做出选择集后依次提取1.横洞HDPolyLineIdary 2.可能斜井XJPLIdAry,第一次范围选取，
 //以道路（主干道）和高程初步筛选
+//选择集选出隧道，里程，辅道入口及其周围高程合适等高线
 bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
 	, AcGePoint3d& APt, AcDbObjectId& IsoLayerId1, AcDbObjectId& IsoId2
 	, AcDbObjectId RdLayerId, AcDbObjectId RdId1)
 {
-	int i, k, rt;
-	AcGePoint2d SSpt;
-	ads_name SSName;
+	//variable
+	int i, k, rt;//for 循环
+	AcGePoint2d SSAreaPt;
+	AcDbEntity* pEIsoPl;
+	Adesk::Int32 TunNum, txtLen, IsoNum;
+	Acad::ErrorStatus es;
+	ads_name SSIsoPLs, ssTun, ssText;//等高线选择集, 隧道选择集1-10个
 	AcGePoint2dArray PLPtAry;
 	struct resbuf* PointList;
+	struct resbuf* RbTunPl;
+	struct resbuf* RbTxt;
+	int NumofPl1 = 0; int XJNum = 0;
+	double maxd = 1; int maxn = 0;
+
+	RbTunPl = acutBuildList(-4, _T("<AND"), RTDXF0, _T("PLINE"),
+		8, _T("隧道-斜井"), -4, _T("AND>"), RTNONE);
+	RbTxt = acutBuildList(RTDXF0, _T("TEXT"),
+		8, _T("PMXX-hngtx"), 1, _T("DK*"), RTNONE);
+	if (acedSSGet(_T("X"), NULL, NULL, RbTunPl, ssTun) != RTNORM
+		|| acedSSGet(_T("X"), NULL, NULL, RbTxt, ssText) != RTNORM)
+	{
+		acedAlert(_T("Filter Selection Set FAILED."));
+		return false;
+	}
+	acedSSLength(ssTun, &TunNum);
+	acedSSLength(ssText, &txtLen);
 	for (k = 0; k < 8; k++)
 	{
 		//辅道最大长度1500m，坡度10度，最大高差260m  cos22.5<1.1
-		SSpt.x = APt.x + cos(k * pi / 4) * 1500 * 1.1;
-		SSpt.y = APt.y + sin(k * pi / 4) * 1500 * 1.1;
-		PLPtAry.append(SSpt);
+		SSAreaPt.x = APt.x + cos(k * pi / 4) * 1500 * 1.1;
+		SSAreaPt.y = APt.y + sin(k * pi / 4) * 1500 * 1.1;
+		PLPtAry.append(SSAreaPt);
 	}
 	PointList = acutBuildList(RTPOINT, PLPtAry[0], RTPOINT, PLPtAry[1]
 		, RTPOINT, PLPtAry[2], RTPOINT, PLPtAry[3], RTPOINT, PLPtAry[4]
 		, RTPOINT, PLPtAry[5], RTPOINT, PLPtAry[6], RTPOINT, PLPtAry[7], RTNONE);
-	AcDbEntity* pEnt;
-	Acad::ErrorStatus es;
-	rt = acedSSGet(_T("CP"), PointList, NULL, NULL, SSName);
+	rt = acedSSGet(_T("CP"), PointList, NULL, NULL, SSIsoPLs);
 	if (rt != RTNORM)
 	{
 		acutRelRb(PointList);
-		acedAlert(_T("\n unknown error!"));
+		acedAlert(_T("\nssget unknown error!"));
 		acutPrintf(_T("\n Selection Set error."));
 		return false;
 	}
-	Adesk::Int32 length;
-	acedSSLength(SSName, &length);
+	acedSSLength(SSIsoPLs, &IsoNum);
 	//acutPrintf(_T("\n选择集个数：%d"), length);
-	int NumofPl1 = 0; int XJNum = 0;
-	double maxd = 1; int maxn = 0;
-	for (i = 0; i < length; i++)
+
+	for (i = 0; i < IsoNum; i++)
 	{
 		ads_name ent;
-		acedSSName(SSName, i, ent);
+		acedSSName(SSIsoPLs, i, ent);
 		AcDbObjectId objId;
 		acdbGetObjectId(objId, ent);
-		es = acdbOpenAcDbEntity(pEnt, objId,
+		es = acdbOpenAcDbEntity(pEIsoPl, objId,
 			AcDb::kForRead);
 		if (es == Acad::eWasOpenForWrite) { continue; }
-		if (pEnt->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue &&
-			(pEnt->layerId() == IsoLayerId1 || pEnt->layerId() == IsoId2))
+		if (pEIsoPl->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue &&
+			(pEIsoPl->layerId() == IsoLayerId1 || pEIsoPl->layerId() == IsoId2))
 		{
 			//AcGePoint3dArray BPtAry;找出所有B点
-			AcDbPolyline* pPoly = AcDbPolyline::cast(pEnt);
+			AcDbPolyline* pPoly = AcDbPolyline::cast(pEIsoPl);
 			AcGePoint2d Apt2d = AcGePoint2d(APt.x, APt.y);//2维A点
 			//选取横洞
 			if (pPoly->elevation() <= APt.z)
@@ -651,7 +660,7 @@ bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
 				//acutPrintf(_T("\n 第%d个多段线实体标高%f"), i, pPoly->elevation());
 				//MinDistPt(pPoly, dist, min, Apt2d);
 				NumofPl1++;
-				HDPolyLineIdary.append(pEnt->objectId());
+				HDPolyLineIdary.append(pEIsoPl->objectId());
 			}
 			else if (pPoly->elevation() <= (APt.z + 260))
 			{
@@ -661,15 +670,19 @@ bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
 				{
 					XJNum++;
 					//acutPrintf(_T("\n 第%d个多段线实体标高%f"), i, pPoly->elevation());
-					XJPLIdAry.append(pEnt->objectId());
+					XJPLIdAry.append(pEIsoPl->objectId());
 				}
 			}
 		}
 
 	}
-	pEnt->close();
+	pEIsoPl->close();
+	acutRelRb(RbTunPl);
+	acutRelRb(RbTxt);
+	acedSSFree(ssText);
+	acedSSFree(ssTun);
 	acutRelRb(PointList);
-	acedSSFree(SSName);
+	acedSSFree(SSIsoPLs);
 	return true;
 }
 
