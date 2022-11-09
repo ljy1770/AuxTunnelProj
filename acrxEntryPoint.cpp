@@ -70,20 +70,18 @@
 //-----------------------------------------------------------------------------
 #define szRDS _RXST("LJY")
 
-
-//const double pi = 3.14159265358979323846;
-//const double tan10 = 0.176326980708;
-
-bool TunSamplePtTemp(AcGePoint2dArray& APtAry);// current DWG
+bool TunSamplePtTemp(AcGePoint2dArray& APtAry,
+	AcDbObjectId TunnelLay, AcDbObjectId mileLay);// current DWG
 bool GetTunAPt(AcGePoint2dArray& APtAry);
 //insert Wblock 函数不能改写外部数据库。
-//bool TunSamplePtNew(AcGePoint2dArray& APtAry, AcGeDoubleArray& APtParamAry, const ACHAR* FileName);
+//bool TunSamplePtNew(AcGePoint2dArray& APtAry, AcGeDoubleArray& APtParamAry, 
+// const ACHAR* FileName);
 //选取当前数据库中隧道信息并打开相应截面图，获取隧道高程  输出AcGePoint3dArray
 
-
-bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
-	, AcGePoint3d& APt, AcDbObjectId& LayerId1, AcDbObjectId& IsoId2
-	, AcDbObjectId RdLayerId, AcDbObjectId RdId1);
+bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary,
+	AcDbObjectIdArray& XJPLIdAry, AcGePoint3d& APt,
+	AcDbObjectId& IsoLwhite, AcDbObjectId& IsoLorange,
+	AcDbObjectId Isoellow);
 double PlLength(AcDbPolyline* pPoly);
 bool MinDistPt(AcDbPolyline* pPoly, double& MinDist, int& MinNum, AcGePoint2d& Apt);
 bool MaxDistPt(AcDbPolyline* pPoly, double& MaxDist, int& MaxNum, AcGePoint2d& Apt);
@@ -93,7 +91,6 @@ class CAuxTunnelProjDemo01App : public AcRxArxApp {
 
 public:
 	CAuxTunnelProjDemo01App() : AcRxArxApp() {}
-
 	virtual AcRx::AppRetCode On_kInitAppMsg(void* pkt) {
 		// TODO: Load dependencies here
 
@@ -104,7 +101,6 @@ public:
 
 		return (retCode);
 	}
-
 	virtual AcRx::AppRetCode On_kUnloadAppMsg(void* pkt) {
 		// TODO: Add your code here
 
@@ -115,53 +111,76 @@ public:
 
 		return (retCode);
 	}
-
 	virtual void RegisterServerComponents() {}
 
-
 	static void LJYMyGroupATnl() {
-		int i, k;
-		//当前数据库
-		AcDbLayerTable* pLay;
-		acdbHostApplicationServices()->workingDatabase()->getSymbolTable(pLay, AcDb::kForRead);
-		AcDbObjectId IsolLayId, RdLayId, IsoId2, RdId2;//等高线ID...
-		pLay->getAt(_T("8110"), IsolLayId);//等高线图层const ACHAR* IsoLName = _T("")
-		pLay->getAt(_T("4330"), RdLayId);//const ACHAR* RdName = _T("")
-		pLay->getAt(_T("8120"), IsoId2);
-		pLay->getAt(_T("4422"), RdId2);
-		//....
-		pLay->close();
-
-		// 计算A点标高
-		int A_z = 700;
+		int i, j, k, A_z = 700;
 		AcGePoint2dArray TunAPtAry;
 		AcDbObjectIdArray HDPLIdAry, XJPLIdAry, RdObjIdAry;
-		acutPrintf(_T("\n new acdbobjectidary length:%d"), HDPLIdAry.length());
-		TunSamplePtTemp(TunAPtAry);
-		//GetTunAPt(TunAPtAry);
-		acutPrintf(_T("\n 选取的A点个数：%d"), TunAPtAry.length());
 		AcGePoint3d APoint;
 		double minD = 0; int minN = 0;
-		AcDbEntity* pHDPLEnt;
+		AcDbEntity* pHDPolyLine;
+		AcDbEntity* pXJPolyline;
 		Acad::ErrorStatus es;
+		AcDbLayerTable* pIsoLayerTable;
+		AcDbObjectId TunnelLay, MileLay
+			, IsolLayId8110, IsolLayId8310
+			, IsolLayId8120, IsolLayId8521
+			, RdLayId2110, RdId2111
+			, RvLayId4430;
+		//等高线ID...//当前数据库
+		acdbHostApplicationServices()->
+			workingDatabase()->getSymbolTable(pIsoLayerTable, AcDb::kForRead);
+		if (pIsoLayerTable->has(_T("隧道-斜井"))
+			&& pIsoLayerTable->has(_T("PMXX-hngtx"))
+			&& pIsoLayerTable->has(_T("Iso8310"))
+			&& pIsoLayerTable->has(_T("Iso8310"))
+			&& pIsoLayerTable->has(_T("Iso8120"))
+			&& pIsoLayerTable->has(_T("Iso8521"))
+			&& pIsoLayerTable->has(_T("Rv4430"))
+			&& pIsoLayerTable->has(_T("Rd2110"))
+			&& pIsoLayerTable->has(_T("Rd2111")) != Adesk::kTrue) {
+			acedAlert(_T("pIsoLayerTable doesn't exist"));
+			return;
+		}
+		pIsoLayerTable->getAt(_T("隧道-斜井"), TunnelLay);
+		pIsoLayerTable->getAt(_T("PMXX-hngtx"), MileLay);
+		pIsoLayerTable->getAt(_T("Iso8110"), IsolLayId8110);
+		//等高线图层
+		pIsoLayerTable->getAt(_T("Iso8120"), IsolLayId8120);
+		//等高线图层黄
+		pIsoLayerTable->getAt(_T("Iso8310"), IsolLayId8310);
+		//顶点坐标point及高程（text）
+		pIsoLayerTable->getAt(_T("Iso8521"), IsolLayId8521);
+		//黄线，作为白色等高线的补充
+		pIsoLayerTable->getAt(_T("Rd2110"), RdLayId2110);
+		pIsoLayerTable->getAt(_T("Rd2111"), RdId2111);
+		pIsoLayerTable->getAt(_T("Rv4430"), RvLayId4430);
+		//....
+		pIsoLayerTable->close();
+		// 计算A点标高
+
+		acutPrintf(_T("\n new acdbobjectidary length:%d"), HDPLIdAry.length());
+		TunSamplePtTemp(TunAPtAry, TunnelLay, MileLay);
+		//GetTunAPt(TunAPtAry);
+		acutPrintf(_T("\n 选取的A点个数：%d"), TunAPtAry.length());
+
 		for (i = 0; i < TunAPtAry.length(); i++)
 		{
 			APoint = AcGePoint3d(TunAPtAry[i].x, TunAPtAry[i].y, A_z);
-			SSGetFunc(HDPLIdAry, XJPLIdAry, APoint, IsolLayId, IsoId2, RdLayId, RdId2);
+			SSGetFunc(HDPLIdAry, XJPLIdAry, APoint,
+				IsolLayId8110, IsolLayId8521, IsolLayId8120);
 			AcGePoint2d Bpoint;
 
-			//合并一个和复数个横洞
-			if (HDPLIdAry.length() == 1)
-			{
-				es = acdbOpenObject(pHDPLEnt, HDPLIdAry[0], AcDb::kForRead);
-				if (es == Acad::eWasOpenForWrite) { continue; }
-				AcDbPolyline* HDPL = AcDbPolyline::cast(pHDPLEnt);
-				MinDistPt(HDPL, minD, minN, TunAPtAry[i]);
-				acutPrintf(_T("\n求最小值之后参数为：minD %f, minN %f, "), minD, minN);
-				HDPL->getPointAt(minN, Bpoint);
-				CreateEnt::CreatePolyline(TunAPtAry[i], Bpoint, 2);
-			}
-			else if (HDPLIdAry.length() >= 2)
+			//
+			//es = acdbOpenObject(pHDPolyLine, HDPLIdAry[0], AcDb::kForRead);
+			//if (es == Acad::eWasOpenForWrite) { continue; }
+			//AcDbPolyline* HDPL = AcDbPolyline::cast(pHDPolyLine);
+			//MinDistPt(HDPL, minD, minN, TunAPtAry[i]);
+			//acutPrintf(_T("\n求最小值之后参数为：minD %f, minN %f, "), minD, minN);
+			//HDPL->getPointAt(minN, Bpoint);
+			//CreateEnt::CreatePolyline(TunAPtAry[i], Bpoint, 2);
+			if (HDPLIdAry.length() >= 1)
 			{
 				//在多个多段线中选择最优点出横洞
 				AcGeDoubleArray minDAry;
@@ -170,10 +189,10 @@ public:
 
 				for (k = 0; k < HDPLIdAry.length(); k++)
 				{
-					es = acdbOpenObject(pHDPLEnt, HDPLIdAry[k], AcDb::kForRead);
+					es = acdbOpenObject(pHDPolyLine, HDPLIdAry[k], AcDb::kForRead);
 
 					if (es == Acad::eWasOpenForWrite) { continue; }
-					AcDbPolyline* HDPL = AcDbPolyline::cast(pHDPLEnt);
+					AcDbPolyline* HDPL = AcDbPolyline::cast(pHDPolyLine);
 
 					MinDistPt(HDPL, minD, minN, TunAPtAry[i]);
 					acutPrintf(_T("\n求最小值之后参数为：minD %f, minN %f, "), minD, minN);
@@ -184,23 +203,33 @@ public:
 					BpointAry.append(Bpoint);
 					//test
 					CreateEnt::CreatePolyline(TunAPtAry[i], Bpoint, 1);
-
 				}
-				//
-
 				delete[] minNAry;
 			}
-			//该点附近没有横洞
+			else if (XJPLIdAry.length() >= 1)
+			{
+				for (j = 0; j < XJPLIdAry.length(); j++)
+				{
+					es = acdbOpenObject(pXJPolyline, XJPLIdAry[j], AcDb::kForRead);
 
+				}
+
+
+			}
+
+			//
 			HDPLIdAry.removeAll();
 			XJPLIdAry.removeAll();
+
 		}
-		pHDPLEnt->close();
+		//该点附近没有横洞
+
 		HDPLIdAry.~AcArray();
 		XJPLIdAry.~AcArray();
+		pHDPolyLine->close();
+		pXJPolyline->close();
 		return;
 	}
-
 	static void LJYMyGroupTestAPt()
 	{
 		ads_name SSN; Acad::ErrorStatus es;
@@ -230,7 +259,6 @@ public:
 		acedSSFree(SSN);
 
 	}
-
 	static void LJYMyGroupTest02()
 	{
 		AcDbObjectIdArray WYLvl, CD, ZC;
@@ -296,8 +324,6 @@ public:
 		return;
 	}
 
-
-
 	static void LJYMyGroupMyPickFirst() {
 		ads_name result;
 		int iRet = acedSSGet(ACRX_T("_I"), NULL, NULL, NULL, result);
@@ -312,11 +338,9 @@ public:
 			// Put your command code here
 		}
 	}
-
 	static void LJYMyGroupMySessionCmd() {
 		// Put your command code here
 	}
-
 	static int ads_MyLispFunction() {
 		//struct resbuf *args =acedGetArgs () ;
 
@@ -331,7 +355,6 @@ public:
 	}
 
 };
-
 //-----------------------------------------------------------------------------
 IMPLEMENT_ARX_ENTRYPOINT(CAuxTunnelProjDemo01App)
 
@@ -342,39 +365,73 @@ ACED_ADSSYMBOL_ENTRY_AUTO(CAuxTunnelProjDemo01App, MyLispFunction, false)
 ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, TestAPt, TestAPtl, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, Test02, Test02l, ACRX_CMD_MODAL, NULL)
 
-//指标1.工期图中顶点趋于一致，2.在指定时间内完成，question：怎么设计迭代，从工期图返回峰值来看，
+//指标1.工期图中顶点趋于一致，2.在指定时间内完成，question：怎么设计迭代，
+// 从工期图返回峰值来看，
 // 将高峰值辅道往低峰值辅道上移动
-//绝对误差：用极差代替。每一次迭代得到一个结果，再变换初始点进行新一轮迭代，得到多个解，
-// 取重叠区域最多的解进行迭代，最后再所有解中选出前5。
-// 
-
-
+//绝对误差：用极差代替。每一次迭代得到一个结果，再变换初始点进行新一轮迭代，
+// 得到多个解，取重叠区域最多的解进行迭代，最后再所有解中选出前5。
+// 修改反复打开层表
+	////打开的图层表仅用于当前图层对已有的外部数据库无效
+	//AcDbLayerTable* pMainTunnelLay;
+	//acdbHostApplicationServices()->workingDatabase()->
+	//	getSymbolTable(pMainTunnelLay, AcDb::kForRead);
+	//AcDbObjectId MTId, RdId;
+	//if (pMainTunnelLay->has(_T("PMXX-hngtx"))
+	//	&& pMainTunnelLay->has(_T("隧道-斜井")) == Adesk::kFalse) {
+	//	AfxMessageBox(_T("Layer 'tunnel' doesn't exist."));
+	//	pMainTunnelLay->close();
+	//	return false;
+	//}
+	//if (!pMainTunnelLay->has(_T("4330"))) {
+	//	AfxMessageBox(_T("Layer 'Rd' doesn't exist."));
+	//	pMainTunnelLay->close();
+	//	return false;
+	//}
+	//pMainTunnelLay->getAt(_T("隧道-斜井"), MTId);
+	//pMainTunnelLay->getAt(_T("4330"), RdId);
+	//pMainTunnelLay->close();
 //1. 根据扩展数据 XDATA 或者扩展记录 XRECORD
 // 确定需要画辅道的隧道  
-//2. 找出A点，每隔一公里确定一个A点，每5个A点确定一个最优解，先计算隧道长度，确定此隧道有几个A点，
+//2. 找出A点，每隔一公里确定一个A点，每5个A点确定一个最优解，
+// 先计算隧道长度，确定此隧道有几个A点，
 // 每隔5km放置一个，左右移动以迭代出最优解
-//
-bool TunSamplePtTemp(AcGePoint2dArray& APtAry)
+// 扩展数据XDATA找出隧道
+// 	//AcGePoint2dArray SamplePtArray;
+	//unsigned int index = 1; functoin getpointat() obsolete 
+	//struct resbuf* pRb;
+	// //pRb = pEnt->xData();
+	//pRb = pEnt->xData(_T("何家梁隧道"));
+	// //free(pRb);
+		//在n等分点选组A点acgepoint3d;
+		//加入外部数据库或者直接画polyline3d
+		//
+		//AcGePoint3dArray
+		//for (k = 1; k < (Num + 1); k++)
+		//APtAry.append(TunPtAry[(int)TnlLen / 2]);
+		//}
+		//else if (pEnt->layerId() == MTId &&
+		//	pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue) {
+		//	AcDbText* ptxt = AcDbText::cast(pEnt);
+		//	acutPrintf(_T("\n text:%s"), ptxt->textString());
+		//}
+	//if (acutRelRb(pRb) != RTNORM) {
+	//	acutPrintf(_T("\nresult buffer release error."));
+	//	return false;
+	//}
+
+//隧道层可以确定A点位置，里程位置结合截面图确立A点标高
+//bool TunSamplePtTemp(AcGePoint2dArray& APtAry,
+//	AcDbObjectId TunnelLay, AcDbObjectId mileLay)
+//{
+//	
+//}
+
+bool TunSamplePtTemp(AcGePoint2dArray& APtAry,
+	AcDbObjectId TunnelLay, AcDbObjectId mileLay)
 {
-	//打开的图层表仅用于当前图层对已有的外部数据库无效
-	AcDbLayerTable* pMainTunnelLay;
-	acdbHostApplicationServices()->workingDatabase()->
-		getSymbolTable(pMainTunnelLay, AcDb::kForRead);
-	AcDbObjectId MTId, RdId;
-	if (pMainTunnelLay->has(_T("PMXX-hngtx"))
-		&& pMainTunnelLay->has(_T("隧道-斜井")) == Adesk::kFalse) {
-		AfxMessageBox(_T("Layer 'tunnel' doesn't exist."));
-		pMainTunnelLay->close();
-		return false;
-	}
-	if (!pMainTunnelLay->has(_T("4330"))) {
-		AfxMessageBox(_T("Layer 'Rd' doesn't exist."));
-		pMainTunnelLay->close();
-		return false;
-	}
-	pMainTunnelLay->getAt(_T("隧道-斜井"), MTId);
-	pMainTunnelLay->getAt(_T("4330"), RdId);
-	pMainTunnelLay->close();
+	double TnlLen = 0;
+	int Num, WorkLen, Numb, VtxNum,
+		i = 1, j = 1, descount, count = 0;
 	AcDbBlockTable* pBlk;
 	acdbHostApplicationServices()->workingDatabase()->
 		getSymbolTable(pBlk, AcDb::kForRead);
@@ -383,12 +440,7 @@ bool TunSamplePtTemp(AcGePoint2dArray& APtAry)
 	pBlk->close();
 	AcDbBlockTableRecordIterator* pIter;
 	pBlkRcd->newIterator(pIter);
-	double TnlLen = 0;
-	int count, descount, Num, WorkLen, Numb, VtxNum, i = 1, j = 1;
-	count = 0;
-	//AcGePoint2dArray SamplePtArray;
-	//unsigned int index = 1; functoin getpointat() obsolete 
-	//struct resbuf* pRb;
+
 	for (pIter->start(); !pIter->done(); pIter->step())
 	{
 		count++;
@@ -402,17 +454,15 @@ bool TunSamplePtTemp(AcGePoint2dArray& APtAry)
 			{
 				acutPrintf((_T("iterate error")));
 				acedAlert(_T("process terminated."));
-				break;
+				return false;
 			}
 		}
 		AcDbEntity* pEnt;
 		pIter->getEntity(pEnt, AcDb::kForWrite);
-		//pRb = pEnt->xData();
-		//pRb = pEnt->xData(_T("何家梁隧道"));
+
 		//找出主隧道
-		if (pEnt->layerId() == MTId &&
+		if (pEnt->layerId() == TunnelLay &&
 			pEnt->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue) {
-			//&& pRb != NULL){
 			AcDbPolyline* pPL = AcDbPolyline::cast(pEnt);
 			OptmizeFunc::PLLength(pPL, TnlLen);
 			if (TnlLen < 1000000 && TnlLen > TnlWorkingLen) {
@@ -421,43 +471,25 @@ bool TunSamplePtTemp(AcGePoint2dArray& APtAry)
 				Numb = Num + 1;
 				WorkLen = (int)(TnlLen / Numb);
 				AcGePoint2dArray TunPtAry;
-				//if (pRb != NULL){
 				AcGeCurve2d* pMainTunCur;
 				OptmizeFunc::PolyToGeCurve((const AcDbPolyline*&)pPL, pMainTunCur);
 				Adesk::Boolean rbl;
 				AcGePoint2d PtStart, PtEnd;
-				//acutPrintf(_T("\n 断点11"));
 				rbl = pMainTunCur->hasStartPoint(PtStart);
 				rbl = pMainTunCur->hasEndPoint(PtEnd);
 				pMainTunCur->getSamplePoints(VtxNum, TunPtAry);
-				//acutPrintf(_T("\n 断点12"));
 				acutPrintf(_T("\nTnlLen = %d,Num = %d Numb = %d,workLen = %d")
 					, VtxNum, Num, Numb, WorkLen);
 				for (j = 1; j < Numb; j++) {
 					APtAry.append(TunPtAry[WorkLen * j - 1]);
 				}
 			}
-			//free(pRb);
-			//在n等分点选组A点acgepoint3d;
-			//加入外部数据库或者直接画polyline3d
-			//
-			//AcGePoint3dArray
-			//for (k = 1; k < (Num + 1); k++)
-			//APtAry.append(TunPtAry[(int)TnlLen / 2]);
-			//}
+
 		}
-		//else if (pEnt->layerId() == MTId &&
-		//	pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue) {
-		//	AcDbText* ptxt = AcDbText::cast(pEnt);
-		//	acutPrintf(_T("\n text:%s"), ptxt->textString());
-		//}
 
 		pEnt->close();
 	}
-	//if (acutRelRb(pRb) != RTNORM) {
-	//	acutPrintf(_T("\nresult buffer release error."));
-	//	return false;
-	//}
+
 	acutPrintf(_T("\n APtAry.Length() = ：%d"), APtAry.length());
 	delete pIter;
 	pBlkRcd->close();
@@ -472,34 +504,7 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 	ads_name ssTunPl, ssText;
 	struct resbuf* RbTunPl;
 	struct resbuf* RbTxt;
-	//
-	//filter index
-	//acedInitGet(RSG_NONULL|RSG_NOZERO|RSG_NONEG,NULL);
-	//acedGetInt(_T("选择一个过滤器"), &index);
-	//switch (index)
-	//{
-	//case 2:filter2 x
-	//选择图形中圆心在 pt1 和 pt2 两点构成的矩形内的圆
-	//struct resbuf* rb = acutBuildList(RTDXF0, _T("CIRCLE"), // 实体类型
-	//	-4, _T(">,>,*"),10, pt1, /// 关系运算符和通配符/ 圆心
-	//	-4, _T("<,<,*"), 10, pt2, RTNONE); /// 关系运算符和通配符/ 圆心
-	// //case 3:filter3  v// 扩展数据的应用程序名 程序名不分大小写
-	// //扩展数据中的ASCII字符串 只能选取到字符串包含Road的轻量多段线
-	// //其他实体类型不起作用
-	// rb = acutBuildList(1000, _T("Road"), RTNONE);
-	// rb = acutBuildList(-4, _T("<OR"), RTDXF0, _T("TEXT"), RTDXF0, _T("MTEXT"),
-	//	-4, _T("OR>"), RTNONE);  
-	// //case 1:  v
-	//	rb = acutBuildList(RTDXF0, _T("CIRCLE"),
-	//	-4, _T(">="), 40, 30, RTNONE);
-	// //case 4:filter4    v // 实体类型// 图层 // 包含的字符串
-	// rb = acutBuildList(RTDXF0, _T("TEXT"),
-	//	8, _T("0,图层1"), 1, _T("*cadhelp*"), RTNONE);
-	// //default:选择图形中位于0层上的所有直线   v// 实体类型// 图层
-	// rb = acutBuildList(RTDXF0, _T("LINE"), 8, _T("0"), RTNONE);
-	//}
-	// 	//实体类型包括轻量多段线和text，图层包括pmxx-h.. 和隧道-斜井
-	//两个选择集，一个选择隧道多段线，一个选择里程文字用于定位
+
 	RbTunPl = acutBuildList(-4, _T("<AND"), RTDXF0, _T("PLINE"),
 		8, _T("隧道-斜井"), -4, _T("AND>"), RTNONE);
 	RbTxt = acutBuildList(RTDXF0, _T("TEXT"),
@@ -586,9 +591,10 @@ bool GetTunAPt(AcGePoint2dArray& APtAry)
 //做出选择集后依次提取1.横洞HDPolyLineIdary 2.可能斜井XJPLIdAry,第一次范围选取，
 //以道路（主干道）和高程初步筛选
 //选择集选出隧道，里程，辅道入口及其周围高程合适等高线
-bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
-	, AcGePoint3d& APt, AcDbObjectId& IsoLayerId1, AcDbObjectId& IsoId2
-	, AcDbObjectId RdLayerId, AcDbObjectId RdId1)
+bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary,
+	AcDbObjectIdArray& XJPLIdAry, AcGePoint3d& APt,
+	AcDbObjectId& IsoLwhite, AcDbObjectId& IsoLorange,
+	AcDbObjectId Isoellow)
 {
 	//variable
 	int i, k, rt;//for 循环
@@ -599,23 +605,8 @@ bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
 	ads_name SSIsoPLs, ssTun, ssText;//等高线选择集, 隧道选择集1-10个
 	AcGePoint2dArray PLPtAry;
 	struct resbuf* PointList;
-	struct resbuf* RbTunPl;
-	struct resbuf* RbTxt;
 	int NumofPl1 = 0; int XJNum = 0;
 	double maxd = 1; int maxn = 0;
-
-	RbTunPl = acutBuildList(-4, _T("<AND"), RTDXF0, _T("PLINE"),
-		8, _T("隧道-斜井"), -4, _T("AND>"), RTNONE);
-	RbTxt = acutBuildList(RTDXF0, _T("TEXT"),
-		8, _T("PMXX-hngtx"), 1, _T("DK*"), RTNONE);
-	if (acedSSGet(_T("X"), NULL, NULL, RbTunPl, ssTun) != RTNORM
-		|| acedSSGet(_T("X"), NULL, NULL, RbTxt, ssText) != RTNORM)
-	{
-		acedAlert(_T("Filter Selection Set FAILED."));
-		return false;
-	}
-	acedSSLength(ssTun, &TunNum);
-	acedSSLength(ssText, &txtLen);
 	for (k = 0; k < 8; k++)
 	{
 		//辅道最大长度1500m，坡度10度，最大高差260m  cos22.5<1.1
@@ -646,8 +637,10 @@ bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
 		es = acdbOpenAcDbEntity(pEIsoPl, objId,
 			AcDb::kForRead);
 		if (es == Acad::eWasOpenForWrite) { continue; }
-		if (pEIsoPl->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue &&
-			(pEIsoPl->layerId() == IsoLayerId1 || pEIsoPl->layerId() == IsoId2))
+		if (pEIsoPl->isKindOf(AcDbPolyline::desc())
+			&& (pEIsoPl->layerId() == IsoLwhite
+				|| pEIsoPl->layerId() == Isoellow
+				|| pEIsoPl->layerId() == IsoLorange))
 		{
 			//AcGePoint3dArray BPtAry;找出所有B点
 			AcDbPolyline* pPoly = AcDbPolyline::cast(pEIsoPl);
@@ -677,10 +670,6 @@ bool SSGetFunc(AcDbObjectIdArray& HDPolyLineIdary, AcDbObjectIdArray& XJPLIdAry
 
 	}
 	pEIsoPl->close();
-	acutRelRb(RbTunPl);
-	acutRelRb(RbTxt);
-	acedSSFree(ssText);
-	acedSSFree(ssTun);
 	acutRelRb(PointList);
 	acedSSFree(SSIsoPLs);
 	return true;

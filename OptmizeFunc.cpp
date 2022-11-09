@@ -270,7 +270,8 @@ bool OptmizeFunc::TnlDataBase(const ACHAR* FileN)
 	return false;
 }
 
-bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, AcDbObjectIdArray& ZC)
+bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, 
+	AcDbObjectIdArray& CD, AcDbObjectIdArray& ZC)
 {
 	//// 提示用户选择图形文件
 	//AcDbLayerTable* pLay;
@@ -310,7 +311,7 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, 
 	pBlkTbl01->close();
 	AcDbBlockTableRecordIterator* pBlkTblRcdItr1;
 	pBlkTblRcd1->newIterator(pBlkTblRcdItr1);
-	AcDbEntity* pEnt;
+	AcDbEntity* pSectionEntity;
 	ACHAR* abc;
 	std::wstring ws, ws1;
 	AcString SDText, layerb;
@@ -318,7 +319,7 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, 
 	double WLlvly = 0, CDy = 0, ZCy = 0;
 	for (pBlkTblRcdItr1->start(); !pBlkTblRcdItr1->done(); pBlkTblRcdItr1->step())
 	{
-		pBlkTblRcdItr1->getEntity(pEnt, AcDb::kForRead);
+		pBlkTblRcdItr1->getEntity(pSectionEntity, AcDb::kForRead);
 
 		//if (pEnt->layerId() == ChartInfoLayId && 
 		//if ( pEnt->layer() == _T("编辑") || 
@@ -328,9 +329,9 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, 
 		// 可用textstring（AcString）识别
 		//
 
-		if (pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue)
+		if (pSectionEntity->isKindOf(AcDbText::desc()) == Adesk::kTrue)
 		{
-			AcDbText* pText = AcDbText::cast(pEnt);
+			AcDbText* pText = AcDbText::cast(pSectionEntity);
 			//postion = pText->position();
 			//alnPoint = pText->alignmentPoint();
 			//const ACHAR* textstr = pText->textString();
@@ -372,9 +373,9 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, 
 			}
 
 		}
-		else if (pEnt->isKindOf(AcDbMText::desc()) == Adesk::kTrue)
+		else if (pSectionEntity->isKindOf(AcDbMText::desc()) == Adesk::kTrue)
 		{
-			AcDbMText* pMText = AcDbMText::cast(pEnt);
+			AcDbMText* pMText = AcDbMText::cast(pSectionEntity);
 			pMText->text(SDText);
 			if (SDText == _T("围岩级别"))
 			{
@@ -414,7 +415,7 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, 
 	}
 
 
-	pEnt->close();
+	pSectionEntity->close();
 	pBlkTblRcd2->close();
 	delete pBlkTblRcdItr2;
 	delete pExternalDb;
