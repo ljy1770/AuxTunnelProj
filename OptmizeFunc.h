@@ -15,13 +15,13 @@ const double SectionDiaGramScaleYMax = -500.0;
 const double chartfloorhight = 10;// 表格层高
 
 
-struct sectiondiagraminfo {
-	ACHAR* DiZhi;
-	double Changdu;
-	ACHAR* LiCheng;
-	double Xielv;
-	AcGePoint3d position;
-};
+//struct sectiondiagraminfo {
+//	ACHAR* DiZhi;
+//	double Changdu;
+//	ACHAR* LiCheng;
+//	double Xielv;
+//	AcGePoint3d position;
+//};
 class OptmizeFunc
 {
 public:
@@ -41,6 +41,8 @@ public:
 	static bool NearRdPl(AcGePoint2d& BPt, AcDbObjectId RdLayId);
 	//约束3选择集确定B点附近有无道路
 
+	static bool TunmileTxtSSget(AcGePoint2d& Point2d, AcString mileString);
+
 	static bool AngBetweenAtNMt(AcGePoint2d APt, AcGePoint2d BPt
 		, AcGePoint2dArray TunAPtAry, int num);//check
 
@@ -57,8 +59,8 @@ public:
 	//读取隧道高程
 	static bool TnlDataBase(const ACHAR* FileN);
 
-	static bool ChooseExTlDb(AcDbObjectIdArray& WYLvl, AcDbObjectIdArray& CD, AcDbObjectIdArray& ZC);
-
+	static bool ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
+		, double& elvation2, int& slope, int& Lenth, AcDbObjectIdArray DiZhiIdAry);
 
 private:
 	static bool PartialOpenDatabase(AcDbDatabase* pDb);

@@ -22,7 +22,7 @@ bool OptmizeFunc::Vallay()
 	return false;
 }
 
-bool OptmizeFunc::Ridge(AcGePoint2dArray& RidgePtAry, AcGePoint2d& TunAPt, 
+bool OptmizeFunc::Ridge(AcGePoint2dArray& RidgePtAry, AcGePoint2d& TunAPt,
 	AcDbObjectIdArray HD, AcDbObjectIdArray XJ)
 {
 	return false;
@@ -34,10 +34,8 @@ bool OptmizeFunc::PolyToGeCurve(const AcDbPolyline*& pPline, AcGeCurve2d*& pGeCu
 	AcGeLineSeg2d line, * pLine; // 几何曲线的直线段部分
 	AcGeCircArc2d arc, * pArc; // 几何曲线的圆弧部分
 	AcGeVoidPointerArray geCurves; // 指向组成几何曲线各分段的指针数组
-	acutPrintf(_T("\n 断点6"));
 	nSegs = pPline->numVerts() - 1;
 
-	// 根据多段线创建对应的分段几何曲线
 	for (int i = 0; i < nSegs; i++)
 	{
 		if (pPline->segType(i) == AcDbPolyline::kLine)
@@ -53,8 +51,6 @@ bool OptmizeFunc::PolyToGeCurve(const AcDbPolyline*& pPline, AcGeCurve2d*& pGeCu
 			geCurves.append(pArc);
 		}
 	}
-	acutPrintf(_T("\n 断点7"));
-	// 处理闭合多段线最后一段是圆弧的情况
 	if (pPline->isClosed() && pPline->segType(nSegs) ==
 		AcDbPolyline::kArc)
 	{
@@ -64,8 +60,6 @@ bool OptmizeFunc::PolyToGeCurve(const AcDbPolyline*& pPline, AcGeCurve2d*& pGeCu
 			(arc.endAng() - arc.startAng()) / 100);
 		geCurves.append(pArc);
 	}
-	acutPrintf(_T("\n 断点8"));
-	// 根据分段的几何曲线创建对应的复合曲线
 	if (geCurves.length() == 1)
 	{
 		pGeCurve = (AcGeCurve2d*)geCurves[0];
@@ -74,8 +68,6 @@ bool OptmizeFunc::PolyToGeCurve(const AcDbPolyline*& pPline, AcGeCurve2d*& pGeCu
 	{
 		pGeCurve = new AcGeCompositeCurve2d(geCurves);
 	}
-	acutPrintf(_T("\n 断点9"));
-	// 释放动态分配的内存
 	if (geCurves.length() > 1)
 	{
 		for (int i = 0; i < geCurves.length(); i++)
@@ -86,17 +78,19 @@ bool OptmizeFunc::PolyToGeCurve(const AcDbPolyline*& pPline, AcGeCurve2d*& pGeCu
 
 	return true;
 }
-
+//斜井选取
 bool OptmizeFunc::SlopeNLength(AcDbObjectIdArray& XJPLIdAry, AcGePoint3d Apt)
 {
 	return false;
 }
 
+
+
 bool OptmizeFunc::NearRdPl(AcGePoint2d& BPt, AcDbObjectId RdLayId)
 {
 	ads_name SSname; struct resbuf* PointList;
 	AcGePoint2dArray SSPL; AcGePoint2d SSpt; int i, rt;
-	AcDbEntity* pEnt;
+	AcDbEntity* pRoad;
 	for (i = 0; i < 4; i++)
 	{
 		SSpt.x = BPt.x + cos(i * pi) * 700;
@@ -120,12 +114,72 @@ bool OptmizeFunc::NearRdPl(AcGePoint2d& BPt, AcDbObjectId RdLayId)
 		AcDbObjectId objId;
 		acdbGetObjectId(objId, ent);
 
-		es = acdbOpenAcDbEntity(pEnt, objId,
+		es = acdbOpenAcDbEntity(pRoad, objId,
 			AcDb::kForRead);
 		if (es == Acad::eWasOpenForWrite) { continue; }
-		if (pEnt->layerId() == RdLayId) { return true; }
+		if (pRoad->layerId() == RdLayId) { return true; }
 	}
 
+	return false;
+}
+
+bool OptmizeFunc::TunmileTxtSSget(AcGePoint2d& Point2d, AcString MileAcString)
+{
+	ads_name SSname; struct resbuf* PointList;
+	AcGePoint2dArray SSPL; AcGePoint2d SSpt; int i, rt;
+	AcDbEntity* pLiCHengTxt;
+	for (i = 0; i < 10; i++)
+	{
+		SSpt.x = Point2d.x + cos(i * pi / 5) * 45;
+		SSpt.y = Point2d.y + sin(i * pi / 5) * 45;
+		SSPL.append(SSpt);
+	}//设置端点附近45米范围有里程标识
+	PointList = acutBuildList(RTPOINT, SSPL[0], RTPOINT, SSPL[1]
+		, RTPOINT, SSPL[2], RTPOINT, SSPL[3], RTPOINT, SSPL[4], RTPOINT, SSPL[5]
+		, RTPOINT, SSPL[6], RTPOINT, SSPL[7], RTPOINT, SSPL[8], RTPOINT, SSPL[9]
+		, RTNONE);
+	rt = acedSSGet(_T("CP"), PointList, NULL, NULL, SSname);
+	if (rt != RTNORM)
+	{
+		acedAlert(_T("\n Selction set error!"));
+		pLiCHengTxt->close();
+		return false;
+	}
+	Adesk::Int32 length; Acad::ErrorStatus es;
+	
+	const ACHAR* DK = _T("DK");
+	acedSSLength(SSname, &length);
+	acutPrintf(_T("\n选择集个数：%d"), length);
+	for (i = 0; i < length; i++)
+	{
+		ads_name ent;
+		acedSSName(SSname, i, ent);
+		AcDbObjectId objId;
+		acdbGetObjectId(objId, ent);
+		es = acdbOpenAcDbEntity(pLiCHengTxt, objId,
+			AcDb::kForRead);
+		if (es == Acad::eWasOpenForWrite) { continue; }
+		if (pLiCHengTxt->isKindOf(AcDbText::desc()) == Adesk::kTrue)
+		{
+			AcDbText* mileTxt = AcDbText::cast(pLiCHengTxt);
+			mileTxt->textString(MileAcString);
+			if (MileAcString.find(DK) != -1)
+			{
+				return true;
+			}
+		}
+		else if (pLiCHengTxt->isKindOf(AcDbMText::desc()) == Adesk::kTrue)
+		{
+			AcDbMText* MileMtext = AcDbMText::cast(pLiCHengTxt);
+			MileMtext->text(MileAcString);
+			if (MileAcString.find(DK) != -1)
+			{
+				return true;
+			}
+		}
+	}
+	acedAlert(_T("\n cannot find DK*,\nplz move text"));
+	pLiCHengTxt->close();
 	return false;
 }
 
@@ -270,9 +324,12 @@ bool OptmizeFunc::TnlDataBase(const ACHAR* FileN)
 	return false;
 }
 
-bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl, 
-	AcDbObjectIdArray& CD, AcDbObjectIdArray& ZC)
+	//acstring DK309+590 DK297+190 对应高程 760.xx 1004.xx 
+	//斜率 int 20 总长 int 12600,地质 objectidArray?
+bool OptmizeFunc::ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
+	, double& elvation2, int& slope, int& Lenth, AcDbObjectIdArray DiZhiIdAry)
 {
+	// NOTE:
 	//// 提示用户选择图形文件
 	//AcDbLayerTable* pLay;
 	//acdbHostApplicationServices()->workingDatabase()->getSymbolTable(pLay, AcDb::kForRead);
@@ -286,12 +343,34 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl,
 	// position acdbtext左下角坐标 alignmentPoint 文字对齐坐标，如果没有设置则为0点
 	//AcGePoint3d postion, alnPoint;
 	//AcDbObjectIdArray infoIdAry;
-
+		//if (pEnt->layerId() == ChartInfoLayId  
+		// 由于数据库的不稳定性，不宜用layerID函数读取外部数据库
+		// 可选择方式有，layerFilter,openpartialDB 
+		// 或者用AcString 转换成 ACHAR*识别图层是有效的
+		// abc = acutAcStringToAChar(AcString, errorStatus);
+		//  pText->layer(layerb);
+		// if ( pEnt->layer() == _T("编辑") || 
+		//	layerb == _T("编辑"))
+		//
+		// postion = pText->position();
+		// alnPoint = pText->alignmentPoint();
+		// 文字的两个坐标函数没问题
+		// 
+		//textstringconst()函数没有terminal sign（\0）
+		// 不能放在判断语句里
+		// 对于Text 或MText
+		// 文字类函数推荐使用带有AcString& 参数类型
+		//textString()函数不推荐
+		// this function is deprecated,please use another overload
+		// 也用不了（for unknown reason），需换用另一个重载函数
+		// 可用textstring（AcString）识别
+		//
 	int n = atoi("123");
 	acutPrintf(_T("\nn=%d"), n);
 	//AcDbDatabase* pExternalDb(Adesk::kFalse);
 	AcDbDatabase* pExternalDb = new AcDbDatabase(Adesk::kFalse);
 	struct resbuf* rb;
+	Acad::ErrorStatus IterSeekRt;
 	rb = acutNewRb(RTSTR);
 	if (RTNORM != acedGetFileD(_T("选择图形文件名称"), NULL, _T("dwg"), 0, rb))
 	{
@@ -302,8 +381,8 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl,
 		acedAlert(_T("读取DWG文件失败!")); acutRelRb(rb); return false;
 	}
 	acutRelRb(rb);
-	bool bRet = OpenExDbinSpacLay(pExternalDb, _T("编辑"));
-
+	//bool bRet = OpenExDbinSpacLay(pExternalDb, _T("编辑"));
+	bool bRet = PartialOpenDatabase(pExternalDb);
 	AcDbBlockTable* pBlkTbl01;
 	pExternalDb->getSymbolTable(pBlkTbl01, AcDb::kForRead);
 	AcDbBlockTableRecord* pBlkTblRcd1;
@@ -312,112 +391,130 @@ bool OptmizeFunc::ChooseExTlDb(AcDbObjectIdArray& WYLvl,
 	AcDbBlockTableRecordIterator* pBlkTblRcdItr1;
 	pBlkTblRcd1->newIterator(pBlkTblRcdItr1);
 	AcDbEntity* pSectionEntity;
-	ACHAR* abc;
-	std::wstring ws, ws1;
-	AcString SDText, layerb;
+	//AcString = wString
+	AcString SDText, ZongChang, layBianji, PoDuAcString, PoduChangDu;
 	Acad::ErrorStatus es = eOk;
-	double WLlvly = 0, CDy = 0, ZCy = 0;
+	double WeiLan_y = 0, ChangDu_y = 0, ZhongChangy = 0
+		, LiCHeng_y = 0, Sheji_y = 0, SheJi_h = 0, DKText_y = 0
+		, DKPlusTxt_y = 0, SlopeTxt_y = 0, SlopeLen_y = 0; //设计坡度按千分比计算
+	int64_t PoDu, PoDu_Len, i64t = 0;
 	for (pBlkTblRcdItr1->start(); !pBlkTblRcdItr1->done(); pBlkTblRcdItr1->step())
 	{
+
 		pBlkTblRcdItr1->getEntity(pSectionEntity, AcDb::kForRead);
-
-		//if (pEnt->layerId() == ChartInfoLayId && 
-		//if ( pEnt->layer() == _T("编辑") || 
-		//	layerb == _T("编辑") || abc == _T("编辑"))
-		//用AcString 转换成 ACHAR*识别图层是有效的
-		// 由于textstring和text stringconst没有terminalsign，不能作为文字识别
-		// 可用textstring（AcString）识别
-		//
-
 		if (pSectionEntity->isKindOf(AcDbText::desc()) == Adesk::kTrue)
 		{
 			AcDbText* pText = AcDbText::cast(pSectionEntity);
-			//postion = pText->position();
-			//alnPoint = pText->alignmentPoint();
-			//const ACHAR* textstr = pText->textString();
-			//pText->layer(layerb);
-			// //acutPrintf(_T("\nstrlen:%d"), strlen((const char*)pText->textStringConst()));
-			//通过x坐标顺序依次读取每段里程数据，
-			//textstringconst() 和textstring() 两函数没有terminal sign（\0）
-			// 不能放在判断语句里
-			//
-			SDText.length();
 			pText->textString(SDText);
-			
-			abc = acutAcStringToAChar(SDText, es);
-			
-			ws = pText->textString();
-			ws1 = SDText;
-			if (pText->textStringConst() == _T("围岩级别") ||
-				pText->textString() == _T("围岩级别") ||
-				SDText == _T("围岩级别"))
+			if (SDText == _T("围岩级别"))
 			{
-				acutPrintf(_T("\n  sdtext \ntext %s,layer:%s"), pText->textStringConst(), pText->layer());
+				WeiLan_y = pText->alignmentPoint().y;
 			}
-			else if (abc == _T("总  长（m）") || ws == _T("总  长（m）") ||
-				pText->textString() == (ACHAR*)_T("总  长（m）"))
+			else if (SDText == _T("总  长（m）"))
 			{
+				ZhongChangy = pText->alignmentPoint().y;
 				acutPrintf(_T("\npostion:x = %f y=%f\nalignment:x = %f,y = %f"),
 					pText->position().x, pText->position().y,
 					pText->alignmentPoint().x, pText->alignmentPoint().y);
-				acutPrintf(_T("\n  ws \ntext %s,layer:%s"), pText->textStringConst(), pText->layer());
 			}
-			
-			else if (pText->textString() == (ACHAR*)_T("内轨顶面设计高程"))
+			else if (SDText == _T("设计坡度（‰）"))
 			{
-				
+				AcDbText* pPoDutxt;
+				Sheji_y = pText->alignmentPoint().y;
+				SheJi_h = pText->height();// y+-3/4h坡度文字y轴坐标
+				for (pBlkTblRcdItr1->start(); !pBlkTblRcdItr1->done(); pBlkTblRcdItr1->step())
+				{
+					if ((pSectionEntity->colorIndex() == 6)
+						&& pSectionEntity->isKindOf(AcDbText::desc()))
+					{
+						pPoDutxt = AcDbText::cast(pSectionEntity);
+						SlopeTxt_y = pPoDutxt->alignmentPoint().y;
+						if ((SlopeTxt_y > (Sheji_y - SheJi_h * 0.75))
+							&& (SlopeTxt_y < (Sheji_y + SheJi_h * 0.75)))
+							//此时pPoDutext是坡度或者长度
+						{
+							pPoDutxt->textString(PoDuAcString);
+							i64t = PoDuAcString.asDeci64();
+							if (i64t > 0 && i64t < 1000)
+							{
+								PoDu = i64t;
+							}
+							else if (i64t > 1000)
+							{
+								PoDu_Len = i64t;
+							}
+						}
+					}
+					else if (pSectionEntity->colorIndex() == 1)
+					{
+
+					}
+				}
+
+				IterSeekRt = pBlkTblRcdItr1->seek(pSectionEntity);
+				if (IterSeekRt != Acad::eOk)
+				{
+					acedAlert(_T("迭代器定位失败"));
+					pText->close();
+					return false;
+				}
 			}
-			else if (pText->textString() == _T("里  程"));
+			else if (SDText == _T("里  程"))
 			{
+				LiCHeng_y = pText->alignmentPoint().y;
+				AcDbText* pDKtext;
+				for (pBlkTblRcdItr1->start(); !pBlkTblRcdItr1->done(); pBlkTblRcdItr1->step())
+				{
+					pBlkTblRcdItr1->getEntity(pSectionEntity, AcDb::kForRead);
+					if ((pSectionEntity->colorIndex() == 6)
+						&& pSectionEntity->isKindOf(AcDbText::desc()))
+					{
+						pDKtext = AcDbText::cast(pSectionEntity);
+						DKText_y = pDKtext->alignmentPoint().y;
+						if (DKText_y == LiCHeng_y)
+						{
+
+						}
+					}
+				}
+				pDKtext->close();
+				IterSeekRt = pBlkTblRcdItr1->seek(pText);
+				if (IterSeekRt != Acad::eOk)
+				{
+					acedAlert(_T("迭代器定位失败"));
+					pText->close();
+					return false;
+				}
 
 			}
+			pText->close();
 
 		}
 		else if (pSectionEntity->isKindOf(AcDbMText::desc()) == Adesk::kTrue)
 		{
-			AcDbMText* pMText = AcDbMText::cast(pSectionEntity);
-			pMText->text(SDText);
-			if (SDText == _T("围岩级别"))
-			{
-				acutPrintf(_T("\nMtext:%s,LAYER:%s\nlocation:x=%d,y=%d"),
-					pMText->text(), pMText->layer(), pMText->location());
-			}
-			else if (SDText == _T("长  度（m）"))
-			{
-
-			}
-			else if (SDText == _T("总  长（m）"))
-			{
-				acutPrintf(_T("\nMtext:%s,\nlocation:x=%d,y=%d"),
-					pMText->text(), pMText->location());
-			}
-			
-
+			//AcDbMText* pMText = AcDbMText::cast(pSectionEntity);
+			//pMText->text(SDText);
+			//if (SDText == _T("围岩级别"))
+			//{
+			//	acutPrintf(_T("\nMtext:%s,LAYER:%s\nlocation:x=%d,y=%d"),
+			//		pMText->text(), pMText->layer(), pMText->location());
+			//}
+			//else if (SDText == _T("长  度（m）"))
+			//{
+			//}
+			//else if (SDText == _T("总  长（m）"))
+			//{
+			//	acutPrintf(_T("\nMtext:%s,\nlocation:x=%d,y=%d"),
+			//		pMText->text(), pMText->location());
+			//}
 		}
 
 
 	}
-	pBlkTblRcd1->close();
-	delete pBlkTblRcdItr1;
-
-	bRet = OpenExDbinSpacLay(pExternalDb, _T("地质"));
-	AcDbBlockTable* pBlkTbl02;
-	pExternalDb->getSymbolTable(pBlkTbl02, AcDb::kForRead);
-	AcDbBlockTableRecord* pBlkTblRcd2;
-	pBlkTbl02->getAt(ACDB_MODEL_SPACE, pBlkTblRcd2, AcDb::kForRead);
-	pBlkTbl02->close();
-	AcDbBlockTableRecordIterator* pBlkTblRcdItr2;
-	pBlkTblRcd2->newIterator(pBlkTblRcdItr2);
-	for (pBlkTblRcdItr2->start(); !pBlkTblRcdItr2->done(); pBlkTblRcdItr2->step())
-	{
-
-
-	}
-
 
 	pSectionEntity->close();
-	pBlkTblRcd2->close();
-	delete pBlkTblRcdItr2;
+	pBlkTblRcd1->close();
+	delete pBlkTblRcdItr1;
 	delete pExternalDb;
 	return true;
 }
@@ -481,6 +578,8 @@ bool OptmizeFunc::PartialOpenDatabase(AcDbDatabase* pDb)
 	layerFilter.add(_T("地质"));
 	layerFilter.add(_T("编辑"));
 	layerFilter.add(_T("3"));
+	layerFilter.add(_T("GiCAD_PouMian"));
+
 	// 对图形数据库应用局部加载
 	Acad::ErrorStatus es;
 	es = pDb->applyPartialOpenFilters(&spatialFilter, &layerFilter);
