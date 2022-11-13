@@ -113,6 +113,8 @@ public:
 	}
 	virtual void RegisterServerComponents() {}
 
+
+	//主函数内不使用迭代器和选择集
 	static void LJYMyGroupATnl() {
 		int i, j, k;
 		AcGePoint3dArray TunAPtAry;
@@ -220,92 +222,198 @@ public:
 		pXJPolyline->close();
 		return;
 	}
-	static void LJYMyGroupTestAPt()
+	static void LJYMyGroupTest()
 	{
-		ads_name SSN; Acad::ErrorStatus es;
-		AcDbEntity* pEPlLen;
-		acedSSGet(NULL, NULL, NULL, NULL, SSN);
-		Adesk::Int32 length;
-		acedSSLength(SSN, &length);
-		acutPrintf(_T("\n选择集个数：%d"), length);
-		int i = 0;
-		for (i = 0; i < length; i++)
-		{
-			ads_name ent;
-			acedSSName(SSN, i, ent);
-			AcDbObjectId objId;
-			acdbGetObjectId(objId, ent);
-			es = acdbOpenAcDbEntity(pEPlLen, objId,
-				AcDb::kForRead);
-			if (es == Acad::eWasOpenForWrite) { continue; }
-			if (pEPlLen->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue) {
-				AcDbPolyline* pPoly = AcDbPolyline::cast(pEPlLen);
-				double L;
-				OptmizeFunc::PLLength(pPoly, L);
-				acutPrintf(_T("\nPolyline %d, length:%f"), i, L);
-			}
-		}
-		pEPlLen->close();
-		acedSSFree(SSN);
+		//ads_name SSN; Acad::ErrorStatus es;
+		//AcDbEntity* pEPlLen;
+		//acedSSGet(NULL, NULL, NULL, NULL, SSN);
+		//Adesk::Int32 length;
+		//acedSSLength(SSN, &length);
+		//acutPrintf(_T("\n选择集个数：%d"), length);
+		//int i = 0;
+		//for (i = 0; i < length; i++)
+		//{
+		//	ads_name ent;
+		//	acedSSName(SSN, i, ent);
+		//	AcDbObjectId objId;
+		//	acdbGetObjectId(objId, ent);
+		//	es = acdbOpenAcDbEntity(pEPlLen, objId,
+		//		AcDb::kForRead);
+		//	if (es == Acad::eWasOpenForWrite) { continue; }
+		//	if (pEPlLen->isKindOf(AcDbPolyline::desc()) == Adesk::kTrue) {
+		//		AcDbPolyline* pPoly = AcDbPolyline::cast(pEPlLen);
+		//		double L;
+		//		OptmizeFunc::PLLength(pPoly, L);
+		//		acutPrintf(_T("\nPolyline %d, length:%f"), i, L);
+		//	}
+		//}
+		//pEPlLen->close();
+		//acedSSFree(SSN);
+
+
 
 	}
+	//测试 Mtext Content函数 
+	// Mtext 行 AcString 行 Text 分成多个 不行 
 	static void LJYMyGroupTest02()
 	{
-		acutPrintf(_T("\n当前数据库TEXT 和MTEXT "));
+		AcString MTDK309590, TxtDK309, DK309n590
+			, MTDK209190, TxtDK209Add190, conts, contentRTF, acstext;
+		int findrt, i, retrn;
 		AcDbBlockTable* pBlk;
 		acdbHostApplicationServices()->workingDatabase()->
 			getBlockTable(pBlk, AcDb::kForRead);
 		AcDbBlockTableRecord* pBlkRcd;
 		pBlk->getAt(ACDB_MODEL_SPACE, pBlkRcd, AcDb::kForRead);
 		pBlk->close();
-
 		AcDbBlockTableRecordIterator* pIter;
 		pBlkRcd->newIterator(pIter);
-
 		for (pIter->start(); !pIter->done(); pIter->step())
 		{
 			AcDbEntity* pEnt;
-			pIter->getEntity(pEnt, AcDb::kForWrite);
-
+			pIter->getEntity(pEnt, AcDb::kForRead);
+			//对比append 和concat（concatenate v 链接 adj. 连锁的）compare collate
+			//deleteatindex find left match
 			if (pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue)
 			{
-				AcGePoint3dArray txtbound2pt;
+				//AcGePoint3dArray txtbound2pt;
 				AcDbText* pTxt = AcDbText::cast(pEnt);
 				AcString txtstr;
 				pTxt->textString(txtstr);
-				pTxt->getBoundingPoints(txtbound2pt);
-				acutPrintf(_T("\n text->textstring(AcString) = %s"), txtstr);
-				acutPrintf(_T("\ntext->aligmentpoint().x = %f y = %f"
-					"\npmt->position().x = %f y = %f "
-					"\ngetboundpoints(point3dary)pointary[0].x = %f pointary[0].y = %f"
-					"\npointary[1].x = %f y=%f"),
-					pTxt->alignmentPoint().x, pTxt->alignmentPoint().y,
-					pTxt->position().x, pTxt->position().y,
-					txtbound2pt[0].x, txtbound2pt[0].y,
-					txtbound2pt[1].x, txtbound2pt[1].y);
+				//pTxt->getBoundingPoints(txtbound2pt);
+
+				findrt = txtstr.find(_T("DK309"));
+				if (findrt != -1)
+				{
+					TxtDK309 = txtstr;
+					//选择集变量
+					ads_name SSDK309; struct resbuf* PointL;
+					AcGePoint2dArray SSPL; AcGePoint2d SSpt;
+					AcGePoint3d DK309Alimtpzt;
+					Adesk::Int32 length; Acad::ErrorStatus es;
+					DK309Alimtpzt = pTxt->alignmentPoint();
+					for (i = 0; i < 10; i++)
+					{
+						SSpt.x = DK309Alimtpzt.x + cos(i * pi / 5) * 45;
+						SSpt.y = DK309Alimtpzt.y + sin(i * pi / 5) * 45;
+						SSPL.append(SSpt);
+					}
+					PointL = acutBuildList(RTPOINT, SSPL[0], RTPOINT, SSPL[1]
+						, RTPOINT, SSPL[2], RTPOINT, SSPL[3], RTPOINT, SSPL[4], RTPOINT, SSPL[5]
+						, RTPOINT, SSPL[6], RTPOINT, SSPL[7], RTPOINT, SSPL[8], RTPOINT, SSPL[9]
+						, RTNONE);
+					retrn = acedSSGet(_T("CP"), PointL, NULL, NULL, SSDK309);
+					if (retrn != RTNORM)
+					{
+						acedAlert(_T("\n Selction set error!"));
+						return;
+					}
+					acedSSLength(SSDK309, &length);
+					for (i = 0; i < length; i++)
+					{
+						ads_name ent;
+						acedSSName(SSDK309, i, ent);
+						AcDbObjectId objId;
+						acdbGetObjectId(objId, ent);
+						es = acdbOpenAcDbEntity(pEnt, objId,
+							AcDb::kForRead);
+						if (es == Acad::eWasOpenForWrite) { continue; }
+						if (pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue)
+						{
+							AcDbText* DKappend590 = AcDbText::cast(pEnt);
+							DKappend590->textString(txtstr);
+							if (txtstr.find(_T("590")) != -1)
+							{
+								DK309n590 = TxtDK309.concat(txtstr); 
+								TxtDK209Add190 = TxtDK309.append(txtstr);
+								//TxtDK309.append(txtstr); error
+								TxtDK309 += txtstr;
+								//有一个bug，单独1式 不成立，
+								// 12式能同时成立
+								// 123式中 唯有3式不成立
+								// 故全用Mtext进行数据匹配 不用嵌套太多次循环
+								//  数据处理留作另一个request 
+								// 不属于隧道智能设计范畴
+								//unknown reason
+								break;
+							}
+						}
+					}
+					acutRelRb(PointL);
+					acedSSFree(SSDK309);
+					//不能循环套循环
+					// 循环套选择集  不太行  变量得是自动临时变量
+					// 可以一直留在内存中的静态变量或自动变量
+					//for (pIter->start(); !pIter->done(); pIter->step())
+					//{
+					//	pIter->getEntity(pEnt, AcDb::kForRead);
+					//	if (pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue)
+					//	{
+					//		AcDbText* p590Txt = AcDbText::cast(pEnt);
+					//		p590Txt->textString(txtstr);
+					//		findrt = txtstr.find(_T("+590"));
+					//		if (findrt != -1)
+					//		{
+					//			TxtDK309Add590.append(txtstr);
+					//			break;
+					//		}
+					//	}
+					//}
+					//pIter->seek(pTxt);
+					//pIter->step();
+
+				}
+
+				//acutPrintf(_T("\n text->textstring(AcString) = %s"), txtstr);
+				//acutPrintf(_T("\ntext->aligmentpoint().x = %f y = %f"
+				//	"\npmt->position().x = %f y = %f "
+				//	"\ngetboundpoints(point3dary)pointary[0].x = %f pointary[0].y = %f"
+				//	"\npointary[1].x = %f y=%f"),
+				//	pTxt->alignmentPoint().x, pTxt->alignmentPoint().y,
+				//	pTxt->position().x, pTxt->position().y,
+				//	txtbound2pt[0].x, txtbound2pt[0].y,
+				//	txtbound2pt[1].x, txtbound2pt[1].y);
+
+
 			}
 			else if (pEnt->isKindOf(AcDbMText::desc()) == Adesk::kTrue)
 			{
 				AcDbMText* pMt = AcDbMText::cast(pEnt);
 				AcGePoint3dArray Mtxtboundptary;
-				AcString contents, contentRTF, acstext;
-				pMt->contents(contents);
+
+				pMt->contents(conts);
 				pMt->contentsRTF(contentRTF);
 				pMt->text(acstext);
 				pMt->getBoundingPoints(Mtxtboundptary);
-				acutPrintf(_T("\nMtext->text(AcString&) = %s\nAND Mtext->content(AcString)"
-					" = %s\npmtext->contentsRTF(acs) = %s"),
-					acstext, contents, contentRTF);
-				acutPrintf(_T("\npmt->location().x = %f y = %f "
-					"\npmt->normal().x = %f y = %f"
-					"\ngetboundpoints(point3dary)pointary[0].x = %f pointary[0].y = %f"
-					"\npointary[1].x = %f y=%f"),
-					pMt->location().x, pMt->location().y,
-					pMt->normal().x, pMt->normal().y,
-					Mtxtboundptary[0].x, Mtxtboundptary[0].y,
-					Mtxtboundptary[1].x, Mtxtboundptary[1].y);
+				findrt = acstext.find(_T("DK309"));
+				if (findrt != -1)
+				{
+					MTDK309590 = acstext;
+				}
+				//acutPrintf(_T("\nMtext->text(AcString&) = %s\nAND Mtext->content(AcString)"
+				//	" = %s\npmtext->contentsRTF(acs) = %s"),
+				//	acstext, contents, contentRTF);
+				//acutPrintf(_T("\npmt->location().x = %f y = %f "
+				//	"\npmt->normal().x = %f y = %f"
+				//	"\ngetboundpoints(point3dary)pointary[0].x = %f pointary[0].y = %f"
+				//	"\npointary[1].x = %f y=%f"),
+				//	pMt->location().x, pMt->location().y,
+				//	pMt->normal().x, pMt->normal().y,
+				//	Mtxtboundptary[0].x, Mtxtboundptary[0].y,
+				//	Mtxtboundptary[1].x, Mtxtboundptary[1].y);
+
 			}
 		}
+
+		acutPrintf(_T("\ncollate = %d,DK309n590 = %s "
+			"DK297190 = %s"
+		)
+			, MTDK309590.collate(DK309n590), DK309n590
+			, TxtDK209Add190
+		);
+		acutPrintf(_T("\nCompare result = %d\nMTDK309590 = %s,And%s \nTXTDK309 = %s")
+			, MTDK309590.compare(DK309n590), MTDK309590, conts, TxtDK309);
+
 		delete pIter;
 		pBlkRcd->close();
 		return;
@@ -349,9 +457,10 @@ ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, ATnl, ATnlL, ACR
 ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, MyPickFirst, MyPickFirstLocal, ACRX_CMD_MODAL | ACRX_CMD_USEPICKSET, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, MySessionCmd, MySessionCmdLocal, ACRX_CMD_MODAL | ACRX_CMD_SESSION, NULL)
 ACED_ADSSYMBOL_ENTRY_AUTO(CAuxTunnelProjDemo01App, MyLispFunction, false)
-ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, TestAPt, TestAPtl, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, Test, Testl, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, Test02, Test02l, ACRX_CMD_MODAL, NULL)
 
+//NOTE
 //指标1.工期图中顶点趋于一致，2.在指定时间内完成，怎么设计迭代，
 // 从工期图返回峰值来看，
 // 将高峰值辅道往低峰值辅道上移动
@@ -384,43 +493,31 @@ ACED_ARXCOMMAND_ENTRY_AUTO(CAuxTunnelProjDemo01App, LJYMyGroup, Test02, Test02l,
 	//pMainTunnelLay->getAt(_T("隧道-斜井"), MTId);
 	//pMainTunnelLay->getAt(_T("4330"), RdId);
 	//pMainTunnelLay->close();
+	// XDATA
 	//unsigned int index = 1; functoin getpointat() obsolete 
 	//struct resbuf* pRb;
 	// //pRb = pEnt->xData();
 	//pRb = pEnt->xData(_T("何家梁隧道"));
 	// //free(pRb);
 	//在n等分点选组A点acgepoint3d;
-	//加入外部数据库或者直接画polyline3d
-	//
-	//AcGePoint3dArray
-	//for (k = 1; k < (Num + 1); k++)
-	//APtAry.append(TunPtAry[(int)TnlLen / 2]);
-	//}
-	//else if (pEnt->layerId() == MTId &&
-	//	pEnt->isKindOf(AcDbText::desc()) == Adesk::kTrue) {
-	//	AcDbText* ptxt = AcDbText::cast(pEnt);
-	//	acutPrintf(_T("\n text:%s"), ptxt->textString());
-	//}
-	//if (acutRelRb(pRb) != RTNORM) {
-	//	acutPrintf(_T("\nresult buffer release error."));
-	//	return false;
-	//}
+	//加入外部数据库或者直接画polyline3d X
 
 //隧道层可以确定A点位置，里程位置结合截面图确立A点标高
 bool TunSamplePtTemp(AcGePoint3dArray& APtAry,
 	AcDbObjectId TunnelLay, AcDbObjectId mileLay)
 {
-	double A_z, TnlLen = 0;
+	double  Elevat1, Elevat2, A_z = 0, TnlLen = 0;
 	int Num, WorkLen, Numb, VtxNum
 		//, descount, count = 0
-		, i = 1, j = 1;
-		
-	Adesk::Boolean rbl;
-	AcGePoint2d PtStart, PtEnd;
+		, i = 1, j = 1
+		, slope, Length;
+	Adesk::Boolean rbl;//隧道端点
+	AcGePoint2d PtStart, PtEnd;//隧道端点
 	AcGePoint3d APt;
-	AcString TunStPtMTxtToAcStr, TunEdPtMTxtToAcStr;
+	AcString TunStPtMTxtToAcStr, TunEdPtMTxtToAcStr;//隧道里程
 	AcGePoint2dArray TunPtAry;
 	AcGeCurve2d* pMainTunCur;
+	AcDbObjectIdArray DiZhiIdAry;
 	AcDbBlockTable* pBlk;
 	acdbHostApplicationServices()->workingDatabase()->
 		getSymbolTable(pBlk, AcDb::kForRead);
@@ -466,20 +563,25 @@ bool TunSamplePtTemp(AcGePoint3dArray& APtAry,
 				pMainTunCur->getSamplePoints(VtxNum, TunPtAry);
 				acutPrintf(_T("\nTnlLen = %d,Num = %d Numb = %d,workLen = %d")
 					, VtxNum, Num, Numb, WorkLen);
-				OptmizeFunc::TunmileTxtSSget(TunPtAry[0], TunStPtMTxtToAcStr);
-				OptmizeFunc::TunmileTxtSSget(TunPtAry[VtxNum - 1], TunEdPtMTxtToAcStr);
+				OptmizeFunc::TunmileTxtSSget(PtStart, TunStPtMTxtToAcStr);
+				OptmizeFunc::TunmileTxtSSget(PtEnd, TunEdPtMTxtToAcStr);
+				OptmizeFunc::ChooseExTlDb(TunStPtMTxtToAcStr, TunEdPtMTxtToAcStr
+					, Elevat1, Elevat2, slope, Length, DiZhiIdAry);
+
 				if (true)
 				{
 					//mAcString 
 					//是DK309+590，或DK297+190
 					//
 					for (j = 1; j < Numb; j++) {
+						A_z = Elevat1 + (WorkLen * j) * slope / 1000;
 						APt = AcGePoint3d(TunPtAry[WorkLen * j - 1].x,
 							TunPtAry[WorkLen * j - 1].y, A_z);
 						APtAry.append(APt);
 					}
 				}
 			}
+			break;
 		}
 		pTunnelPL->close();
 	}

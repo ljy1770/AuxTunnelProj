@@ -57,10 +57,8 @@ public:
 	static bool PLLength(AcDbPolyline* pPL, double& TolLen);
 
 	//读取隧道高程
-	static bool TnlDataBase(const ACHAR* FileN);
-
 	static bool ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
-		, double& elvation2, int& slope, int& Lenth, AcDbObjectIdArray DiZhiIdAry);
+		, double& elvation2, int& slope, int& Lenth, AcDbObjectIdArray& DiZhiIdAry);
 
 private:
 	static bool PartialOpenDatabase(AcDbDatabase* pDb);

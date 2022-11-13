@@ -22,8 +22,8 @@ bool OptmizeFunc::Vallay()
 	return false;
 }
 
-bool OptmizeFunc::Ridge(AcGePoint2dArray& RidgePtAry, AcGePoint2d& TunAPt,
-	AcDbObjectIdArray HD, AcDbObjectIdArray XJ)
+bool OptmizeFunc::Ridge(AcGePoint2dArray& RidgePtAry, AcGePoint2d& TunAPt
+	, AcDbObjectIdArray HD, AcDbObjectIdArray XJ)
 {
 	return false;
 }
@@ -84,8 +84,6 @@ bool OptmizeFunc::SlopeNLength(AcDbObjectIdArray& XJPLIdAry, AcGePoint3d Apt)
 	return false;
 }
 
-
-
 bool OptmizeFunc::NearRdPl(AcGePoint2d& BPt, AcDbObjectId RdLayId)
 {
 	ads_name SSname; struct resbuf* PointList;
@@ -128,6 +126,7 @@ bool OptmizeFunc::TunmileTxtSSget(AcGePoint2d& Point2d, AcString MileAcString)
 	ads_name SSname; struct resbuf* PointList;
 	AcGePoint2dArray SSPL; AcGePoint2d SSpt; int i, rt;
 	AcDbEntity* pLiCHengTxt;
+	Adesk::Int32 length; Acad::ErrorStatus es;
 	for (i = 0; i < 10; i++)
 	{
 		SSpt.x = Point2d.x + cos(i * pi / 5) * 45;
@@ -142,11 +141,8 @@ bool OptmizeFunc::TunmileTxtSSget(AcGePoint2d& Point2d, AcString MileAcString)
 	if (rt != RTNORM)
 	{
 		acedAlert(_T("\n Selction set error!"));
-		pLiCHengTxt->close();
 		return false;
 	}
-	Adesk::Int32 length; Acad::ErrorStatus es;
-	
 	const ACHAR* DK = _T("DK");
 	acedSSLength(SSname, &length);
 	acutPrintf(_T("\n选择集个数：%d"), length);
@@ -165,6 +161,8 @@ bool OptmizeFunc::TunmileTxtSSget(AcGePoint2d& Point2d, AcString MileAcString)
 			mileTxt->textString(MileAcString);
 			if (MileAcString.find(DK) != -1)
 			{
+				acutRelRb(PointList);
+				acedSSFree(SSname);
 				return true;
 			}
 		}
@@ -174,17 +172,21 @@ bool OptmizeFunc::TunmileTxtSSget(AcGePoint2d& Point2d, AcString MileAcString)
 			MileMtext->text(MileAcString);
 			if (MileAcString.find(DK) != -1)
 			{
+				acutRelRb(PointList);
+				acedSSFree(SSname);
 				return true;
 			}
 		}
 	}
 	acedAlert(_T("\n cannot find DK*,\nplz move text"));
-	pLiCHengTxt->close();
+	acutRelRb(PointList);
+	acedSSFree(SSname);
 	return false;
 }
 
 //较后的约束，用于判断目标辅道与隧道夹角，确定辅道是否转向
-bool OptmizeFunc::AngBetweenAtNMt(AcGePoint2d APt, AcGePoint2d BPt, AcGePoint2dArray TunAPtAry, int num)
+bool OptmizeFunc::AngBetweenAtNMt(AcGePoint2d APt, AcGePoint2d BPt
+	, AcGePoint2dArray TunAPtAry, int num)
 {
 	double a1, a2, b1, b2, AB, cosA1, cosA2;
 	AB = APt.distanceTo(BPt);
@@ -296,40 +298,7 @@ bool OptmizeFunc::PLLength(AcDbPolyline* pPL, double& TolLen)
 	return true;
 }
 
-//标记图层dz
-bool OptmizeFunc::TnlDataBase(const ACHAR* FileN)
-{
-	AcDbDatabase* pDb = new AcDbDatabase(Adesk::kFalse);
-	pDb->readDwgFile(FileN);
-	AcDbBlockTable* pBlTbl;
-	pDb->getSymbolTable(pBlTbl, AcDb::kForRead);
-	AcDbBlockTableRecord* pBlkRec;
-	pBlTbl->getAt(ACDB_MODEL_SPACE, pBlkRec, AcDb::kForWrite);
-	pBlTbl->close();
-	AcDbBlockTableRecordIterator* pBlkTblRcdIter;
-	pBlkRec->newIterator(pBlkTblRcdIter);
-	int i = 0;
-
-
-	AcGePoint2d& pt = AcGePoint2d();
-	//AcDbExtents *pExt;
-	for (pBlkTblRcdIter->start(); !pBlkTblRcdIter->done(); pBlkTblRcdIter->step())
-	{
-
-	}
-	pBlkRec->close();
-	delete pBlkTblRcdIter;
-	delete pDb;
-	return true;
-	return false;
-}
-
-	//acstring DK309+590 DK297+190 对应高程 760.xx 1004.xx 
-	//斜率 int 20 总长 int 12600,地质 objectidArray?
-bool OptmizeFunc::ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
-	, double& elvation2, int& slope, int& Lenth, AcDbObjectIdArray DiZhiIdAry)
-{
-	// NOTE:
+// NOTE:
 	//// 提示用户选择图形文件
 	//AcDbLayerTable* pLay;
 	//acdbHostApplicationServices()->workingDatabase()->getSymbolTable(pLay, AcDb::kForRead);
@@ -343,28 +312,35 @@ bool OptmizeFunc::ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
 	// position acdbtext左下角坐标 alignmentPoint 文字对齐坐标，如果没有设置则为0点
 	//AcGePoint3d postion, alnPoint;
 	//AcDbObjectIdArray infoIdAry;
-		//if (pEnt->layerId() == ChartInfoLayId  
-		// 由于数据库的不稳定性，不宜用layerID函数读取外部数据库
-		// 可选择方式有，layerFilter,openpartialDB 
-		// 或者用AcString 转换成 ACHAR*识别图层是有效的
-		// abc = acutAcStringToAChar(AcString, errorStatus);
-		//  pText->layer(layerb);
-		// if ( pEnt->layer() == _T("编辑") || 
-		//	layerb == _T("编辑"))
-		//
-		// postion = pText->position();
-		// alnPoint = pText->alignmentPoint();
-		// 文字的两个坐标函数没问题
-		// 
-		//textstringconst()函数没有terminal sign（\0）
-		// 不能放在判断语句里
-		// 对于Text 或MText
-		// 文字类函数推荐使用带有AcString& 参数类型
-		//textString()函数不推荐
-		// this function is deprecated,please use another overload
-		// 也用不了（for unknown reason），需换用另一个重载函数
-		// 可用textstring（AcString）识别
-		//
+	//if (pEnt->layerId() == ChartInfoLayId  
+	// 由于数据库的不稳定性，不宜用layerID函数读取外部数据库
+	// 可选择方式有，layerFilter,openpartialDB 
+	// 或者用AcString 转换成 ACHAR*识别图层是有效的
+	// abc = acutAcStringToAChar(AcString, errorStatus);
+	//  pText->layer(layerb);
+	// if ( pEnt->layer() == _T("编辑") || 
+	//	layerb == _T("编辑"))
+	//
+	// postion = pText->position();
+	// alnPoint = pText->alignmentPoint();
+	// 文字的两个坐标函数没问题
+	// 
+	//textstringconst()函数没有terminal sign（\0）
+	// 不能放在判断语句里
+	// 对于Text 或MText
+	// 文字类函数推荐使用带有AcString& 参数类型
+	//textString()函数不推荐
+	// this function is deprecated,please use another overload
+	// 也用不了（for unknown reason），需换用另一个重载函数
+	// 可用textstring（AcString）识别
+	//
+	// input DK1,DK2 
+	//acstring DK309+590 DK297+190 对应高程 760.xx 1004.xx 
+	//斜率 int 20 总长 int 12600,地质 objectidArray?
+bool OptmizeFunc::ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
+	, double& elvation2, int& slope, int& Lenth, AcDbObjectIdArray& DiZhiIdAry)
+{
+
 	int n = atoi("123");
 	acutPrintf(_T("\nn=%d"), n);
 	//AcDbDatabase* pExternalDb(Adesk::kFalse);
@@ -398,6 +374,8 @@ bool OptmizeFunc::ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
 		, LiCHeng_y = 0, Sheji_y = 0, SheJi_h = 0, DKText_y = 0
 		, DKPlusTxt_y = 0, SlopeTxt_y = 0, SlopeLen_y = 0; //设计坡度按千分比计算
 	int64_t PoDu, PoDu_Len, i64t = 0;
+
+	//1.里程
 	for (pBlkTblRcdItr1->start(); !pBlkTblRcdItr1->done(); pBlkTblRcdItr1->step())
 	{
 
@@ -406,7 +384,11 @@ bool OptmizeFunc::ChooseExTlDb(AcString& DK1, AcString& DK2, double& Elevation1
 		{
 			AcDbText* pText = AcDbText::cast(pSectionEntity);
 			pText->textString(SDText);
-			if (SDText == _T("围岩级别"))
+			if (SDText == DK1)
+			{
+
+			}
+			else if (SDText == _T("围岩级别"))
 			{
 				WeiLan_y = pText->alignmentPoint().y;
 			}
